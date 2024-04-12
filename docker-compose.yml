@@ -1,0 +1,17 @@
+version: "3"
+services:
+  postgres2:
+    container_name: postgres2
+    image: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: blog
+      PGDATA: /data/postgres2
+    volumes:
+      - postgres2:/data/postgres2
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+volumes:
+  postgres2:
