@@ -1,7 +1,9 @@
 package org.myungkeun.crud_r2dbc_webflux_2404112.services.impl;
 
 import lombok.AllArgsConstructor;
-import org.myungkeun.crud_r2dbc_webflux_2404112.dto.register.RegisterRequestDto;
+import org.myungkeun.crud_r2dbc_webflux_2404112.config.jwt.JwtTokenUtil;
+import org.myungkeun.crud_r2dbc_webflux_2404112.dto.login.LoginRequest;
+import org.myungkeun.crud_r2dbc_webflux_2404112.dto.register.RegisterRequest;
 import org.myungkeun.crud_r2dbc_webflux_2404112.entities.Role;
 import org.myungkeun.crud_r2dbc_webflux_2404112.entities.User;
 import org.myungkeun.crud_r2dbc_webflux_2404112.repositories.UserRepository;
@@ -17,19 +19,26 @@ import java.util.Objects;
 @AllArgsConstructor
 
 public class AuthServiceImpl implements AuthService {
-
+    private final JwtTokenUtil jwtTokenUtil;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
     @Override
-    public Mono<User> register(RegisterRequestDto request) {
+    public Mono<User> register(RegisterRequest request) {
         return userRepository.findByEmail(request.getEmail())
                 .filter(Objects::nonNull)
                 .flatMap(user -> Mono.<User>error(new RuntimeException("Email already registered")))
                 .switchIfEmpty(saveNewUser(request));
     }
 
-    private Mono<User> saveNewUser(RegisterRequestDto request) {
+    @Override
+    public Mono<String> login(LoginRequest request) {
+        return userRepository.findByEmail(request.getEmail())
+                .filter(user -> passwordEncoder.matches(request.getPassword(), user.getPassword()))
+                .map(jwtTokenUtil::generateAccessToken)
+                .switchIfEmpty(Mono.error(new RuntimeException("Login failed - not found email or wrong password")));
+    }
+
+    private Mono<User> saveNewUser(RegisterRequest request) {
         User newUser = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
